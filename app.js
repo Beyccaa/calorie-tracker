@@ -1,39 +1,21 @@
-/**
- * NutriFlow Calorie & Macro Tracker
- * Vanilla Javascript Application Logic
- */
-
-// ==========================================
-// CORE STATE DEFINITION
-// ==========================================
 let state = {
   theme: 'light',
   dailyCalorieTarget: 2000,
   macroGoals: {
-    protein: 150, // in grams
-    carbs: 225,   // in grams
-    fat: 67       // in grams
+    protein: 150,
+    carbs: 225,
+    fat: 67
   },
-  waterGoal: 2000, // in ml
-  waterIntakes: {}, // { 'YYYY-MM-DD': amountInMl }
-  meals: [],       // Array of { id, name, category, calories, protein, carbs, fat, date }
-  exercises: []    // Array of { id, name, duration, caloriesBurned, date }
+  waterGoal: 2000,
+  waterIntakes: {},
+  meals: [],
+  exercises: []
 };
 
-// State storage key
 const STORAGE_KEY = 'nutriflow_state';
-
-// Current view date (fixed to local today)
 const TODAY_STR = getLocalDateString(new Date());
 let activeCategoryFilter = 'all';
 
-// ==========================================
-// HELPER FUNCTIONS
-// ==========================================
-
-/**
- * Returns YYYY-MM-DD representation of a Date object using local timezone
- */
 function getLocalDateString(dateObj) {
   const year = dateObj.getFullYear();
   const month = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -41,10 +23,6 @@ function getLocalDateString(dateObj) {
   return `${year}-${month}-${day}`;
 }
 
-/**
- * Generates realistic mock historical data for the last 6 days
- * to ensure the user gets a premium visual experience immediately.
- */
 function generateMockData() {
   const today = new Date();
   const mockMeals = [
@@ -67,13 +45,11 @@ function generateMockData() {
     { name: 'Yoga', duration: 40, caloriesBurned: 120 }
   ];
 
-  // Populate last 6 days (excluding today)
   for (let i = 6; i >= 1; i--) {
     const targetDate = new Date();
     targetDate.setDate(today.getDate() - i);
     const dateStr = getLocalDateString(targetDate);
 
-    // Seed 2-3 random meals
     const mealsCount = 2 + Math.floor(Math.random() * 2);
     for (let m = 0; m < mealsCount; m++) {
       const template = mockMeals[Math.floor(Math.random() * mockMeals.length)];
@@ -89,7 +65,6 @@ function generateMockData() {
       });
     }
 
-    // Seed an exercise 70% of the time
     if (Math.random() > 0.3) {
       const template = mockExercises[Math.floor(Math.random() * mockExercises.length)];
       state.exercises.push({
@@ -101,11 +76,9 @@ function generateMockData() {
       });
     }
 
-    // Seed water intake
     state.waterIntakes[dateStr] = 1000 + (Math.floor(Math.random() * 5) * 250);
   }
 
-  // Seed some starting today meals/exercises to avoid blank state
   state.meals.push(
     {
       id: `today-meal-1`,
@@ -138,15 +111,11 @@ function generateMockData() {
   state.waterIntakes[TODAY_STR] = 750;
 }
 
-/**
- * Loads state from local storage or initializes mock data
- */
 function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
     try {
       state = JSON.parse(saved);
-      // Double check theme variable initialization
       if (!state.theme) state.theme = 'light';
       if (!state.waterIntakes) state.waterIntakes = {};
       if (!state.meals) state.meals = [];
@@ -172,31 +141,42 @@ function initializeDefaultState() {
   saveState();
 }
 
-/**
- * Saves current state to local storage
- */
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-// ==========================================
-// RENDERING FUNCTIONS
-// ==========================================
-
-/**
- * Main render function which recalculates stats and updates all components
- */
-function renderApp() {
-  // Apply theme class
+function updateThemeUI() {
   document.documentElement.setAttribute('data-theme', state.theme);
-  const themeIcon = document.querySelector('#theme-toggle-icon use');
-  if (state.theme === 'dark') {
-    themeIcon.setAttribute('href', '#icon-sun');
-  } else {
-    themeIcon.setAttribute('href', '#icon-moon');
-  }
 
-  // Calculate totals for TODAY
+  const isDark = state.theme === 'dark';
+  const pairs = [
+    { icon: '#theme-toggle-icon', light: '#icon-moon', dark: '#icon-sun' },
+    { icon: '#sidebar-theme-icon', light: '#icon-moon', dark: '#icon-sun' },
+    { icon: '#mobile-theme-icon', light: '#icon-moon', dark: '#icon-sun' }
+  ];
+
+  pairs.forEach(p => {
+    const el = document.querySelector(p.icon);
+    if (el) el.setAttribute('href', isDark ? p.dark : p.light);
+  });
+
+  const sidebarLabel = document.getElementById('sidebar-theme-label');
+  if (sidebarLabel) sidebarLabel.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+}
+
+function setGreeting() {
+  const hour = new Date().getHours();
+  let greeting = 'Good evening';
+  if (hour < 12) greeting = 'Good morning';
+  else if (hour < 17) greeting = 'Good afternoon';
+
+  const el = document.getElementById('greeting-text');
+  if (el) el.textContent = greeting;
+}
+
+function renderApp() {
+  updateThemeUI();
+
   const todaysMeals = state.meals.filter(m => m.date === TODAY_STR);
   const todaysExercises = state.exercises.filter(e => e.date === TODAY_STR);
   const todayWater = state.waterIntakes[TODAY_STR] || 0;
@@ -204,86 +184,69 @@ function renderApp() {
   const totalCaloriesIn = todaysMeals.reduce((sum, m) => sum + m.calories, 0);
   const totalCaloriesBurned = todaysExercises.reduce((sum, e) => sum + e.caloriesBurned, 0);
   const netCalories = totalCaloriesIn - totalCaloriesBurned;
-  
+
   const totalProtein = todaysMeals.reduce((sum, m) => sum + (m.protein || 0), 0);
   const totalCarbs = todaysMeals.reduce((sum, m) => sum + (m.carbs || 0), 0);
   const totalFat = todaysMeals.reduce((sum, m) => sum + (m.fat || 0), 0);
 
-  // 1. Update Metrics Summary Headers
   document.getElementById('stats-calories-in').innerText = totalCaloriesIn.toLocaleString();
   document.getElementById('stats-calories-burned').innerText = totalCaloriesBurned.toLocaleString();
   document.getElementById('stats-calories-net').innerText = netCalories.toLocaleString();
 
-  // 2. Update Main Calorie Progress Ring
   const caloriesRemaining = state.dailyCalorieTarget + totalCaloriesBurned - totalCaloriesIn;
   const remainingDisplay = document.getElementById('calories-remaining-display');
   const remainingLbl = document.getElementById('calories-remaining-lbl');
-  
+
   if (caloriesRemaining >= 0) {
     remainingDisplay.innerText = caloriesRemaining.toLocaleString();
     remainingLbl.innerText = 'kcal left';
     remainingLbl.style.color = 'var(--text-secondary)';
-    remainingDisplay.style.color = 'var(--text-primary)';
+    remainingDisplay.style.color = 'var(--primary)';
   } else {
     remainingDisplay.innerText = Math.abs(caloriesRemaining).toLocaleString();
     remainingLbl.innerText = 'kcal over';
-    remainingLbl.style.color = 'var(--danger)';
-    remainingDisplay.style.color = 'var(--danger)';
+    remainingLbl.style.color = 'var(--accent)';
+    remainingDisplay.style.color = 'var(--accent)';
   }
 
-  // Update Circle Stroke Offset
   const circleFill = document.getElementById('calorie-progress-fill');
-  const maxDash = 471; // 2 * pi * 75
+  const maxDash = 471;
   const progressRatio = Math.min(totalCaloriesIn / (state.dailyCalorieTarget + totalCaloriesBurned), 1.5);
-  // Cap dash offset calculations to positive percentages
   const strokeOffset = Math.max(0, maxDash - (Math.min(progressRatio, 1) * maxDash));
   circleFill.style.strokeDashoffset = strokeOffset;
-  
+
   if (totalCaloriesIn > (state.dailyCalorieTarget + totalCaloriesBurned)) {
     circleFill.classList.add('circle-fill-over');
   } else {
     circleFill.classList.remove('circle-fill-over');
   }
 
-  // 3. Update Macro progress
   updateMacroProgressBar('protein', totalProtein, state.macroGoals.protein);
   updateMacroProgressBar('carbs', totalCarbs, state.macroGoals.carbs);
   updateMacroProgressBar('fat', totalFat, state.macroGoals.fat);
 
-  // 4. Update Water tracker
   document.getElementById('water-current-display').innerText = `${todayWater} ml`;
   document.getElementById('water-goal-display').innerText = `of ${state.waterGoal} ml goal`;
   renderWaterCups(todayWater, state.waterGoal);
 
-  // 5. Update Food Diary log list
   renderFoodDiary(todaysMeals);
-
-  // 6. Update Exercise log list
   renderExercises(todaysExercises);
-
-  // 7. Update Weekly trends chart
   renderWeeklyTrendsChart();
 }
 
-/**
- * Updates individual macronutrient indicators
- */
 function updateMacroProgressBar(id, current, goal) {
   const textEl = document.getElementById(`macro-${id}-stats`);
   const fillEl = document.getElementById(`macro-${id}-fill`);
-  
+
   textEl.innerText = `${Math.round(current)}g / ${goal}g`;
   const pct = Math.min((current / goal) * 100, 100);
   fillEl.style.width = `${pct}%`;
 }
 
-/**
- * Renders the water tracking interactive cup grid
- */
 function renderWaterCups(current, goal) {
   const grid = document.getElementById('water-cups-grid');
   grid.innerHTML = '';
-  
+
   const increment = 250;
   const totalCups = Math.max(8, Math.ceil(goal / increment));
   const filledCups = Math.floor(current / increment);
@@ -293,23 +256,19 @@ function renderWaterCups(current, goal) {
     cup.className = `water-cup ${i < filledCups ? 'filled' : ''}`;
     cup.setAttribute('aria-label', `Water cup ${i+1}, ${i < filledCups ? 'Filled' : 'Empty'}`);
     cup.innerHTML = `<svg><use href="#icon-droplet"></use></svg>`;
-    
+
     cup.addEventListener('click', () => {
-      // Toggle logic: If clicking the top filled cup, empty it.
-      // Otherwise, set filled state up to this cup.
       let newAmount = 0;
       if (i < filledCups) {
         if (i === filledCups - 1) {
-          // Clicked the last filled cup, decrement by one cup
           newAmount = i * increment;
         } else {
-          // Set to this cup's index
           newAmount = (i + 1) * increment;
         }
       } else {
         newAmount = (i + 1) * increment;
       }
-      
+
       state.waterIntakes[TODAY_STR] = newAmount;
       saveState();
       renderApp();
@@ -319,16 +278,12 @@ function renderWaterCups(current, goal) {
   }
 }
 
-/**
- * Renders the food diary entries categorized and filtered
- */
 function renderFoodDiary(todaysMeals) {
   const container = document.getElementById('diary-meals-list');
   container.innerHTML = '';
 
-  // Apply filters
-  const filteredMeals = activeCategoryFilter === 'all' 
-    ? todaysMeals 
+  const filteredMeals = activeCategoryFilter === 'all'
+    ? todaysMeals
     : todaysMeals.filter(m => m.category === activeCategoryFilter);
 
   if (filteredMeals.length === 0) {
@@ -342,11 +297,9 @@ function renderFoodDiary(todaysMeals) {
     return;
   }
 
-  // Group meals by category for visual sections
   const categories = ['breakfast', 'lunch', 'dinner', 'snack'];
-  
+
   categories.forEach(cat => {
-    // If filtering by specific category, skip others
     if (activeCategoryFilter !== 'all' && activeCategoryFilter !== cat) return;
 
     const mealsInCat = filteredMeals.filter(m => m.category === cat);
@@ -354,21 +307,17 @@ function renderFoodDiary(todaysMeals) {
 
     const catCalories = mealsInCat.reduce((sum, m) => sum + m.calories, 0);
 
-    // Create Category Group container
     const group = document.createElement('div');
     group.className = 'meal-group';
 
-    // Header
     const header = document.createElement('div');
     header.className = 'meal-group-header';
-    
-    // Choose icon
+
     let iconName = 'icon-coffee';
-    if (cat === 'breakfast') iconName = 'icon-coffee';
     if (cat === 'lunch' || cat === 'dinner') iconName = 'icon-utensils';
-    
+
     header.innerHTML = `
-      <span class="meal-group-title" style="text-transform: capitalize;">
+      <span class="meal-group-title">
         <svg><use href="#${iconName}"></use></svg>
         ${cat}
       </span>
@@ -376,7 +325,6 @@ function renderFoodDiary(todaysMeals) {
     `;
     group.appendChild(header);
 
-    // Items list
     const itemsList = document.createElement('div');
     itemsList.className = 'meal-items-list';
 
@@ -385,7 +333,6 @@ function renderFoodDiary(todaysMeals) {
       item.className = 'meal-item';
       item.id = `meal-${meal.id}`;
 
-      // Build macro sub-text
       let macrosText = '';
       if (meal.protein || meal.carbs || meal.fat) {
         macrosText = `
@@ -410,7 +357,6 @@ function renderFoodDiary(todaysMeals) {
         </div>
       `;
 
-      // Deletion Handler
       item.querySelector('.btn-delete-meal').addEventListener('click', () => {
         deleteMealItem(meal.id, item);
       });
@@ -423,13 +369,8 @@ function renderFoodDiary(todaysMeals) {
   });
 }
 
-/**
- * Animates and deletes a meal entry
- */
 function deleteMealItem(id, element) {
   element.classList.add('item-exit');
-  
-  // Wait for transition before actual data removal
   setTimeout(() => {
     state.meals = state.meals.filter(m => m.id !== id);
     saveState();
@@ -437,9 +378,6 @@ function deleteMealItem(id, element) {
   }, 250);
 }
 
-/**
- * Renders exercise lists
- */
 function renderExercises(todaysExercises) {
   const container = document.getElementById('exercise-log-list');
   container.innerHTML = '';
@@ -458,7 +396,7 @@ function renderExercises(todaysExercises) {
     const card = document.createElement('div');
     card.className = 'exercise-item';
     card.id = `ex-${ex.id}`;
-    
+
     card.innerHTML = `
       <div class="exercise-details">
         <span class="exercise-name">${ex.name}</span>
@@ -480,9 +418,6 @@ function renderExercises(todaysExercises) {
   });
 }
 
-/**
- * Animates and deletes an exercise entry
- */
 function deleteExerciseItem(id, element) {
   element.classList.add('item-exit');
   setTimeout(() => {
@@ -492,17 +427,13 @@ function deleteExerciseItem(id, element) {
   }, 250);
 }
 
-/**
- * Renders the 7-day calorie trends bar chart
- */
 function renderWeeklyTrendsChart() {
   const chart = document.getElementById('weekly-trends-bar-chart');
   chart.innerHTML = '';
 
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const today = new Date();
-  
-  // Generate list of past 7 days
+
   const last7Days = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
@@ -514,26 +445,24 @@ function renderWeeklyTrendsChart() {
     });
   }
 
-  // Calculate Net Calories for each day
   const dailyBalances = last7Days.map(day => {
     const dayMeals = state.meals.filter(m => m.date === day.dateStr);
     const dayExercises = state.exercises.filter(e => e.date === day.dateStr);
-    
+
     const calIn = dayMeals.reduce((sum, m) => sum + m.calories, 0);
     const calOut = dayExercises.reduce((sum, e) => sum + e.caloriesBurned, 0);
     const net = calIn - calOut;
 
     return {
       ...day,
-      netCalories: Math.max(0, net) // Clamp negative balances to 0 for chart visibility
+      netCalories: Math.max(0, net)
     };
   });
 
-  // Calculate chart scale (find highest net value, minimum boundary is the calorie target)
   const maxNet = Math.max(
     state.dailyCalorieTarget,
     ...dailyBalances.map(d => d.netCalories),
-    1 // Prevents division by 0
+    1
   );
 
   dailyBalances.forEach(day => {
@@ -556,7 +485,47 @@ function renderWeeklyTrendsChart() {
 }
 
 // ==========================================
-// FORM AND MODAL CONTROLLERS
+// SIDEBAR NAVIGATION
+// ==========================================
+
+let activeSection = 'dashboard';
+
+function scrollToSection(sectionId) {
+  const card = document.querySelector(`[data-section="${sectionId}"]`);
+  if (!card) return;
+
+  const headerOffset = 100;
+  const elementPosition = card.getBoundingClientRect().top;
+  const offsetPosition = elementPosition + window.scrollY - headerOffset;
+
+  window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+
+  setActiveNav(sectionId);
+}
+
+function setActiveNav(sectionId) {
+  activeSection = sectionId;
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.section === sectionId);
+  });
+}
+
+function setupScrollSpy() {
+  const sections = document.querySelectorAll('[data-section]');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const section = entry.target.dataset.section;
+        if (section) setActiveNav(section);
+      }
+    });
+  }, { rootMargin: '-80px 0px -60% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+}
+
+// ==========================================
+// MODAL CONTROLLERS
 // ==========================================
 
 const modals = {
@@ -573,18 +542,78 @@ function closeModal(modalEl) {
   modalEl.classList.remove('active');
 }
 
-// Setup Event Listeners
+// ==========================================
+// SETUP EVENTS
+// ==========================================
+
 function setupEvents() {
-  // Theme Toggle
+  // Theme Toggle (header)
   document.getElementById('theme-toggle').addEventListener('click', () => {
     state.theme = state.theme === 'light' ? 'dark' : 'light';
     saveState();
     renderApp();
   });
 
+  // Theme Toggle (mobile)
+  document.getElementById('mobile-theme-btn').addEventListener('click', () => {
+    state.theme = state.theme === 'light' ? 'dark' : 'light';
+    saveState();
+    renderApp();
+  });
+
+  // Theme Toggle (sidebar)
+  document.getElementById('nav-theme-toggle').addEventListener('click', (e) => {
+    e.preventDefault();
+    state.theme = state.theme === 'light' ? 'dark' : 'light';
+    saveState();
+    renderApp();
+  });
+
+  // Sidebar Navigation
+  document.querySelectorAll('.nav-item[data-section]').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const section = item.dataset.section;
+      scrollToSection(section);
+
+      // Close sidebar on mobile
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebar-overlay').classList.remove('active');
+    });
+  });
+
+  // Settings nav item
+  document.getElementById('nav-settings').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('target-calories').value = state.dailyCalorieTarget;
+    document.getElementById('target-protein').value = state.macroGoals.protein;
+    document.getElementById('target-carbs').value = state.macroGoals.carbs;
+    document.getElementById('target-fat').value = state.macroGoals.fat;
+    document.getElementById('target-water').value = state.waterGoal;
+    openModal(modals.targets);
+
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('active');
+  });
+
+  // Mobile sidebar
+  document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sidebar-overlay').classList.add('active');
+  });
+
+  document.getElementById('sidebar-close-btn').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('active');
+  });
+
+  document.getElementById('sidebar-overlay').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('active');
+  });
+
   // Open Modals
   document.getElementById('log-meal-header-btn').addEventListener('click', () => {
-    // Preset category to current filter if applicable
     const categorySelector = document.getElementById('food-category');
     if (activeCategoryFilter !== 'all') {
       categorySelector.value = activeCategoryFilter;
@@ -604,7 +633,6 @@ function setupEvents() {
   });
 
   document.getElementById('edit-targets-btn').addEventListener('click', () => {
-    // Fill current targets in settings inputs
     document.getElementById('target-calories').value = state.dailyCalorieTarget;
     document.getElementById('target-protein').value = state.macroGoals.protein;
     document.getElementById('target-carbs').value = state.macroGoals.carbs;
@@ -613,7 +641,7 @@ function setupEvents() {
     openModal(modals.targets);
   });
 
-  // Close Modals (X click / Cancel click / Overlay click)
+  // Close Modals
   const closeBorders = [
     { btn: 'btn-close-food-modal', cancel: 'btn-cancel-food-modal', modal: modals.food },
     { btn: 'btn-close-exercise-modal', cancel: 'btn-cancel-exercise-modal', modal: modals.exercise },
@@ -628,12 +656,11 @@ function setupEvents() {
     });
   });
 
-  // Segmented Control Filters
+  // Segmented Control
   document.getElementById('diary-category-filter').addEventListener('click', (e) => {
     const btn = e.target.closest('.segment-btn');
     if (!btn) return;
 
-    // Toggle active segment styling
     document.querySelectorAll('#diary-category-filter .segment-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 
@@ -642,7 +669,7 @@ function setupEvents() {
     renderFoodDiary(todaysMeals);
   });
 
-  // Water Tracker Quick Controls
+  // Water Controls
   document.getElementById('btn-water-add-250').addEventListener('click', () => {
     const current = state.waterIntakes[TODAY_STR] || 0;
     state.waterIntakes[TODAY_STR] = current + 250;
@@ -656,19 +683,13 @@ function setupEvents() {
     renderApp();
   });
 
-  // ==========================================
-  // FORM SUBMISSION HANDLERS
-  // ==========================================
-
-  // Form: Add Food Entry
+  // Food Form
   document.getElementById('form-add-food').addEventListener('submit', (e) => {
     e.preventDefault();
 
     const category = document.getElementById('food-category').value;
     const name = document.getElementById('food-name').value.trim();
     const calories = parseInt(document.getElementById('food-calories').value);
-    
-    // Optional Macro inputs
     const protein = parseInt(document.getElementById('food-protein').value) || 0;
     const carbs = parseInt(document.getElementById('food-carbs').value) || 0;
     const fat = parseInt(document.getElementById('food-fat').value) || 0;
@@ -690,7 +711,7 @@ function setupEvents() {
     renderApp();
   });
 
-  // Form: Log Exercise
+  // Exercise Form
   document.getElementById('form-add-exercise').addEventListener('submit', (e) => {
     e.preventDefault();
 
@@ -712,7 +733,7 @@ function setupEvents() {
     renderApp();
   });
 
-  // Form: Edit Targets
+  // Targets Form
   document.getElementById('form-edit-targets').addEventListener('submit', (e) => {
     e.preventDefault();
 
@@ -729,10 +750,13 @@ function setupEvents() {
 }
 
 // ==========================================
-// APP INITIALIZATION
+// APP INIT
 // ==========================================
+
 document.addEventListener('DOMContentLoaded', () => {
   loadState();
+  setGreeting();
   setupEvents();
   renderApp();
+  setupScrollSpy();
 });

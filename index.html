@@ -4,14 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="NutriFlow - A premium and fully responsive calorie tracker and macronutrient log. Monitor your daily goals, track exercises, log water intake, and view weekly progress.">
-  <title>NutriFlow | Premium Calorie & Macro Tracker</title>
+  <title>NutriFlow | Calorie & Macro Tracker</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-  <!-- ==========================================
-       SVG ICON LIBRARY (Reusable across app)
-       ========================================== -->
+  <!-- SVG ICON LIBRARY -->
   <svg style="display: none;">
     <symbol id="icon-utensils" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
@@ -70,220 +68,300 @@
       <line x1="10" y1="2" x2="10" y2="4"></line>
       <line x1="14" y1="2" x2="14" y2="4"></line>
     </symbol>
+    <symbol id="icon-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+      <polyline points="9 22 9 12 15 12 15 22"></polyline>
+    </symbol>
+    <symbol id="icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="4" x2="20" y1="12" y2="12"></line>
+      <line x1="4" x2="20" y1="6" y2="6"></line>
+      <line x1="4" x2="20" y1="18" y2="18"></line>
+    </symbol>
+    <symbol id="icon-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+      <circle cx="12" cy="7" r="4"></circle>
+    </symbol>
+    <symbol id="icon-logout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+      <polyline points="16 17 21 12 16 7"></polyline>
+      <line x1="21" x2="9" y1="12" y2="12"></line>
+    </symbol>
   </svg>
 
-  <div class="app-container">
-    
-    <!-- ==========================================
-         HEADER
-         ========================================== -->
-    <header>
-      <div class="logo-section">
-        <svg><use href="#icon-utensils"></use></svg>
-        <h1>NutriFlow</h1>
+  <!-- SIDEBAR OVERLAY (mobile) -->
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <svg><use href="#icon-pie"></use></svg>
+        <span>NutriFlow</span>
       </div>
-      <div class="header-controls">
-        <button id="theme-toggle" class="btn-icon" aria-label="Toggle Dark Mode">
-          <svg id="theme-toggle-icon"><use href="#icon-moon"></use></svg>
-        </button>
-        <button id="edit-targets-btn" class="btn-icon" aria-label="Edit Daily Goals">
-          <svg><use href="#icon-settings"></use></svg>
-        </button>
-        <button id="log-meal-header-btn" class="btn btn-primary">
-          <svg><use href="#icon-plus"></use></svg> Log Food
-        </button>
+      <button class="sidebar-close-btn" id="sidebar-close-btn" aria-label="Close sidebar">
+        <svg><use href="#icon-close"></use></svg>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main Menu</div>
+      <a href="#" class="nav-item active" data-section="dashboard">
+        <span class="nav-icon"><svg><use href="#icon-home"></use></svg></span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a href="#" class="nav-item" data-section="food-diary">
+        <span class="nav-icon"><svg><use href="#icon-utensils"></use></svg></span>
+        <span class="nav-label">Food Diary</span>
+      </a>
+      <a href="#" class="nav-item" data-section="exercise">
+        <span class="nav-icon"><svg><use href="#icon-activity"></use></svg></span>
+        <span class="nav-label">Exercise</span>
+      </a>
+      <a href="#" class="nav-item" data-section="hydration">
+        <span class="nav-icon"><svg><use href="#icon-droplet"></use></svg></span>
+        <span class="nav-label">Hydration</span>
+      </a>
+      <a href="#" class="nav-item" data-section="insights">
+        <span class="nav-icon"><svg><use href="#icon-trending"></use></svg></span>
+        <span class="nav-label">Weekly Insights</span>
+      </a>
+
+      <div class="nav-section-label" style="margin-top: 1.5rem;">Preferences</div>
+      <a href="#" class="nav-item" id="nav-settings" data-section="settings">
+        <span class="nav-icon"><svg><use href="#icon-settings"></use></svg></span>
+        <span class="nav-label">Settings</span>
+      </a>
+      <a href="#" class="nav-item" id="nav-theme-toggle">
+        <span class="nav-icon"><svg id="sidebar-theme-icon"><use href="#icon-moon"></use></svg></span>
+        <span class="nav-label" id="sidebar-theme-label">Dark Mode</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">
+          <svg><use href="#icon-user"></use></svg>
+        </div>
+        <div class="sidebar-user-info">
+          <span class="sidebar-user-name">Sarah Johnson</span>
+          <span class="sidebar-user-plan">Premium Plan</span>
+        </div>
       </div>
-    </header>
+    </div>
+  </aside>
 
-    <!-- ==========================================
-         DASHBOARD GRID
-         ========================================== -->
-    <main class="dashboard-grid">
-      
-      <!-- LEFT COLUMN -->
-      <section class="main-column">
-        
-        <!-- CALORIE & MACRO OVERVIEW CARD -->
-        <article class="card" id="card-calorie-overview">
-          <div class="card-header">
-            <h2 class="card-title">
-              <svg><use href="#icon-pie"></use></svg>
-              Daily Energy Balance
-            </h2>
-          </div>
-          
-          <!-- Summary Stats Row -->
-          <div class="stats-summary-row">
-            <div class="stat-box">
-              <span class="stat-label">Ingested</span>
-              <span class="stat-value" id="stats-calories-in">0</span>
-            </div>
-            <div class="stat-box">
-              <span class="stat-label">Burned</span>
-              <span class="stat-value" id="stats-calories-burned">0</span>
-            </div>
-            <div class="stat-box highlight">
-              <span class="stat-label">Net Intake</span>
-              <span class="stat-value" id="stats-calories-net">0</span>
-            </div>
-          </div>
+  <!-- MAIN CONTENT -->
+  <div class="main-wrapper" id="main-wrapper">
 
-          <div class="calorie-overview">
-            <!-- SVG Progress Indicator -->
-            <div class="circle-progress-container">
-              <svg class="circle-progress-svg">
-                <circle class="circle-bg" cx="90" cy="90" r="75"></circle>
-                <circle class="circle-fill" id="calorie-progress-fill" cx="90" cy="90" r="75" stroke-dasharray="471" stroke-dashoffset="471"></circle>
-              </svg>
-              <div class="circle-text">
-                <div class="circle-num" id="calories-remaining-display">2,000</div>
-                <div class="circle-lbl" id="calories-remaining-lbl">kcal left</div>
+    <!-- MOBILE HEADER BAR -->
+    <div class="mobile-topbar">
+      <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Toggle menu">
+        <svg><use href="#icon-menu"></use></svg>
+      </button>
+      <div class="mobile-logo">
+        <svg><use href="#icon-pie"></use></svg>
+        <span>NutriFlow</span>
+      </div>
+      <button class="mobile-theme-btn btn-icon" id="mobile-theme-btn" aria-label="Toggle Dark Mode">
+        <svg id="mobile-theme-icon"><use href="#icon-moon"></use></svg>
+      </button>
+    </div>
+
+    <div class="main-content">
+
+      <!-- TOP HEADER BAR -->
+      <header>
+        <div class="header-left">
+          <div class="header-greeting">
+            <span class="greeting-text" id="greeting-text">Good morning</span>
+            <span class="greeting-name">Let's track your nutrition</span>
+          </div>
+        </div>
+        <div class="header-controls">
+          <button id="theme-toggle" class="btn-icon" aria-label="Toggle Dark Mode">
+            <svg id="theme-toggle-icon"><use href="#icon-moon"></use></svg>
+          </button>
+          <button id="edit-targets-btn" class="btn-icon" aria-label="Edit Daily Goals">
+            <svg><use href="#icon-settings"></use></svg>
+          </button>
+          <button id="log-meal-header-btn" class="btn btn-primary">
+            <svg><use href="#icon-plus"></use></svg> Log Food
+          </button>
+        </div>
+      </header>
+
+      <!-- DASHBOARD GRID -->
+      <main class="dashboard-grid">
+
+        <!-- LEFT COLUMN -->
+        <section class="main-column">
+
+          <!-- CALORIE & MACRO OVERVIEW CARD -->
+          <article class="card" id="card-calorie-overview" data-section="dashboard">
+            <div class="card-header">
+              <h2 class="card-title">
+                <svg><use href="#icon-pie"></use></svg>
+                Daily Energy Balance
+              </h2>
+            </div>
+
+            <div class="stats-summary-row">
+              <div class="stat-box">
+                <span class="stat-label">Ingested</span>
+                <span class="stat-value" id="stats-calories-in">0</span>
+              </div>
+              <div class="stat-box">
+                <span class="stat-label">Burned</span>
+                <span class="stat-value" id="stats-calories-burned">0</span>
+              </div>
+              <div class="stat-box highlight">
+                <span class="stat-label">Net Intake</span>
+                <span class="stat-value" id="stats-calories-net">0</span>
               </div>
             </div>
 
-            <!-- Macronutrient Progress Bars -->
-            <div class="macro-progress-list">
-              <!-- Protein -->
-              <div class="macro-bar-container">
-                <div class="macro-info">
-                  <span class="macro-label">
-                    <span class="macro-color-dot dot-protein"></span> Protein
-                  </span>
-                  <span class="macro-stats" id="macro-protein-stats">0g / 150g</span>
-                </div>
-                <div class="macro-track">
-                  <div class="macro-fill protein" id="macro-protein-fill"></div>
+            <div class="calorie-overview">
+              <div class="circle-progress-container">
+                <svg class="circle-progress-svg">
+                  <circle class="circle-bg" cx="90" cy="90" r="75"></circle>
+                  <circle class="circle-fill" id="calorie-progress-fill" cx="90" cy="90" r="75" stroke-dasharray="471" stroke-dashoffset="471"></circle>
+                </svg>
+                <div class="circle-text">
+                  <div class="circle-num" id="calories-remaining-display">2,000</div>
+                  <div class="circle-lbl" id="calories-remaining-lbl">kcal left</div>
                 </div>
               </div>
-              
-              <!-- Carbs -->
-              <div class="macro-bar-container">
-                <div class="macro-info">
-                  <span class="macro-label">
-                    <span class="macro-color-dot dot-carbs"></span> Carbs
-                  </span>
-                  <span class="macro-stats" id="macro-carbs-stats">0g / 225g</span>
+
+              <div class="macro-progress-list">
+                <div class="macro-bar-container">
+                  <div class="macro-info">
+                    <span class="macro-label">
+                      <span class="macro-color-dot dot-protein"></span> Protein
+                    </span>
+                    <span class="macro-stats" id="macro-protein-stats">0g / 150g</span>
+                  </div>
+                  <div class="macro-track">
+                    <div class="macro-fill protein" id="macro-protein-fill"></div>
+                  </div>
                 </div>
-                <div class="macro-track">
-                  <div class="macro-fill carbs" id="macro-carbs-fill"></div>
+
+                <div class="macro-bar-container">
+                  <div class="macro-info">
+                    <span class="macro-label">
+                      <span class="macro-color-dot dot-carbs"></span> Carbs
+                    </span>
+                    <span class="macro-stats" id="macro-carbs-stats">0g / 225g</span>
+                  </div>
+                  <div class="macro-track">
+                    <div class="macro-fill carbs" id="macro-carbs-fill"></div>
+                  </div>
+                </div>
+
+                <div class="macro-bar-container">
+                  <div class="macro-info">
+                    <span class="macro-label">
+                      <span class="macro-color-dot dot-fat"></span> Fats
+                    </span>
+                    <span class="macro-stats" id="macro-fat-stats">0g / 67g</span>
+                  </div>
+                  <div class="macro-track">
+                    <div class="macro-fill fat" id="macro-fat-fill"></div>
+                  </div>
                 </div>
               </div>
-              
-              <!-- Fat -->
-              <div class="macro-bar-container">
-                <div class="macro-info">
-                  <span class="macro-label">
-                    <span class="macro-color-dot dot-fat"></span> Fats
-                  </span>
-                  <span class="macro-stats" id="macro-fat-stats">0g / 67g</span>
-                </div>
-                <div class="macro-track">
-                  <div class="macro-fill fat" id="macro-fat-fill"></div>
-                </div>
+            </div>
+          </article>
+
+          <!-- FOOD DIARY CARD -->
+          <article class="card" id="card-food-diary" data-section="food-diary">
+            <div class="card-header">
+              <h2 class="card-title">
+                <svg><use href="#icon-utensils"></use></svg>
+                Food Diary
+              </h2>
+              <div class="segmented-control" id="diary-category-filter">
+                <button class="segment-btn active" data-filter="all">All</button>
+                <button class="segment-btn" data-filter="breakfast">Breakfast</button>
+                <button class="segment-btn" data-filter="lunch">Lunch</button>
+                <button class="segment-btn" data-filter="dinner">Dinner</button>
+                <button class="segment-btn" data-filter="snack">Snack</button>
               </div>
             </div>
-          </div>
-        </article>
 
-        <!-- FOOD DIARY CARD -->
-        <article class="card" id="card-food-diary">
-          <div class="card-header">
-            <h2 class="card-title">
-              <svg><use href="#icon-utensils"></use></svg>
-              Food Diary
-            </h2>
-            <div class="segmented-control" id="diary-category-filter">
-              <button class="segment-btn active" data-filter="all">All</button>
-              <button class="segment-btn" data-filter="breakfast">Breakfast</button>
-              <button class="segment-btn" data-filter="lunch">Lunch</button>
-              <button class="segment-btn" data-filter="dinner">Dinner</button>
-              <button class="segment-btn" data-filter="snack">Snack</button>
+            <div class="meal-sections" id="diary-meals-list"></div>
+          </article>
+
+        </section>
+
+        <!-- RIGHT COLUMN -->
+        <section class="sidebar-column">
+
+          <!-- HYDRATION TRACKER CARD -->
+          <article class="card" id="card-hydration" data-section="hydration">
+            <div class="card-header">
+              <h2 class="card-title">
+                <svg><use href="#icon-droplet"></use></svg>
+                Hydration Log
+              </h2>
             </div>
-          </div>
-
-          <div class="meal-sections" id="diary-meals-list">
-            <!-- Meal Group containers will render here dynamically -->
-          </div>
-        </article>
-
-      </section>
-
-      <!-- RIGHT COLUMN -->
-      <section class="sidebar-column">
-        
-        <!-- HYDRATION TRACKER CARD -->
-        <article class="card" id="card-hydration">
-          <div class="card-header">
-            <h2 class="card-title">
-              <svg><use href="#icon-droplet"></use></svg>
-              Hydration Log
-            </h2>
-          </div>
-          <div class="water-tracker-content">
-            <div>
-              <div class="water-amount" id="water-current-display">0 ml</div>
-              <div class="water-goal" id="water-goal-display">of 2,000 ml goal</div>
+            <div class="water-tracker-content">
+              <div>
+                <div class="water-amount" id="water-current-display">0 ml</div>
+                <div class="water-goal" id="water-goal-display">of 2,000 ml goal</div>
+              </div>
+              <div class="water-grid" id="water-cups-grid"></div>
+              <div class="water-controls">
+                <button class="btn btn-accent" id="btn-water-add-250">
+                  <svg><use href="#icon-plus"></use></svg> 250ml
+                </button>
+                <button class="btn btn-secondary" id="btn-water-reset" aria-label="Reset Water Logging">
+                  Reset
+                </button>
+              </div>
             </div>
-            <div class="water-grid" id="water-cups-grid">
-              <!-- Water cups generated by Javascript -->
-            </div>
-            <div class="water-controls">
-              <button class="btn btn-secondary" id="btn-water-add-250">
-                <svg><use href="#icon-plus"></use></svg> 250ml
+          </article>
+
+          <!-- EXERCISE CARD -->
+          <article class="card" id="card-exercise" data-section="exercise">
+            <div class="card-header">
+              <h2 class="card-title">
+                <svg><use href="#icon-activity"></use></svg>
+                Active Exercises
+              </h2>
+              <button class="btn btn-accent btn-icon" id="btn-log-exercise" aria-label="Log Active Exercise">
+                <svg><use href="#icon-plus"></use></svg>
               </button>
-              <button class="btn btn-secondary" id="btn-water-reset" aria-label="Reset Water Logging">
-                Reset
-              </button>
             </div>
-          </div>
-        </article>
+            <div class="exercise-list" id="exercise-log-list"></div>
+          </article>
 
-        <!-- EXERCISE CARD -->
-        <article class="card" id="card-exercise">
-          <div class="card-header">
-            <h2 class="card-title">
-              <svg><use href="#icon-activity"></use></svg>
-              Active Exercises
-            </h2>
-            <button class="btn btn-secondary btn-icon" id="btn-log-exercise" aria-label="Log Active Exercise">
-              <svg><use href="#icon-plus"></use></svg>
-            </button>
-          </div>
-          <div class="exercise-list" id="exercise-log-list">
-            <!-- Exercise entries render dynamically -->
-          </div>
-        </article>
-
-        <!-- WEEKLY INSIGHTS CARD -->
-        <article class="card" id="card-weekly-insights">
-          <div class="card-header">
-            <h2 class="card-title">
-              <svg><use href="#icon-trending"></use></svg>
-              Weekly Insights
-            </h2>
-          </div>
-          <div class="chart-container">
-            <div class="bar-chart" id="weekly-trends-bar-chart">
-              <!-- Chart columns render dynamically -->
+          <!-- WEEKLY INSIGHTS CARD -->
+          <article class="card" id="card-weekly-insights" data-section="insights">
+            <div class="card-header">
+              <h2 class="card-title">
+                <svg><use href="#icon-trending"></use></svg>
+                Weekly Insights
+              </h2>
             </div>
-          </div>
-        </article>
+            <div class="chart-container">
+              <div class="bar-chart" id="weekly-trends-bar-chart"></div>
+            </div>
+          </article>
 
-      </section>
+        </section>
 
-    </main>
+      </main>
+    </div>
   </div>
 
-  <!-- FLOATING ACTION TRIGGER ON MOBILE -->
+  <!-- FLOATING ACTION BUTTON -->
   <button class="floating-add-btn" id="mobile-floating-action-btn" aria-label="Quick Add Menu">
     <svg style="width:24px; height:24px;"><use href="#icon-plus"></use></svg>
   </button>
 
-  <!-- ==========================================
-       MODALS
-       ========================================== -->
+  <!-- MODALS -->
 
-  <!-- MODAL 1: ADD FOOD LOG -->
+  <!-- MODAL: ADD FOOD -->
   <div class="modal-overlay" id="modal-add-food">
     <div class="modal">
       <div class="modal-header">
@@ -334,7 +412,7 @@
     </div>
   </div>
 
-  <!-- MODAL 2: LOG EXERCISE -->
+  <!-- MODAL: LOG EXERCISE -->
   <div class="modal-overlay" id="modal-add-exercise">
     <div class="modal">
       <div class="modal-header">
@@ -366,7 +444,7 @@
     </div>
   </div>
 
-  <!-- MODAL 3: TARGET GOALS CONFIG -->
+  <!-- MODAL: TARGET GOALS -->
   <div class="modal-overlay" id="modal-edit-targets">
     <div class="modal">
       <div class="modal-header">
