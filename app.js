@@ -1,26 +1,22 @@
 let state = {
   theme: 'light',
   dailyCalorieTarget: 2000,
-  macroGoals: {
-    protein: 150,
-    carbs: 225,
-    fat: 67
-  },
+  macroGoals: { protein: 150, carbs: 225, fat: 67 },
   waterGoal: 2000,
+  activityLevel: 1.375,
+  bodyWeight: null,
   waterIntakes: {},
   meals: [],
-  exercises: []
+  exercises: [],
+  dailyNotes: {}
 };
 
-const STORAGE_KEY = 'nutriflow_state';
+const STORAGE_KEY = 'caltrack_state';
 const TODAY_STR = getLocalDateString(new Date());
 let activeCategoryFilter = 'all';
 
 function getLocalDateString(dateObj) {
-  const year = dateObj.getFullYear();
-  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const day = String(dateObj.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
 }
 
 function generateMockData() {
@@ -46,15 +42,14 @@ function generateMockData() {
   ];
 
   for (let i = 6; i >= 1; i--) {
-    const targetDate = new Date();
-    targetDate.setDate(today.getDate() - i);
-    const dateStr = getLocalDateString(targetDate);
+    const d = new Date(); d.setDate(today.getDate() - i);
+    const dateStr = getLocalDateString(d);
 
     const mealsCount = 2 + Math.floor(Math.random() * 2);
     for (let m = 0; m < mealsCount; m++) {
       const template = mockMeals[Math.floor(Math.random() * mockMeals.length)];
       state.meals.push({
-        id: `mock-meal-${dateStr}-${m}-${Math.random()}`,
+        id: `mock-meal-${dateStr}-${m}`,
         name: template.name,
         category: template.category,
         calories: template.calories + Math.floor((Math.random() * 60) - 30),
@@ -68,7 +63,7 @@ function generateMockData() {
     if (Math.random() > 0.3) {
       const template = mockExercises[Math.floor(Math.random() * mockExercises.length)];
       state.exercises.push({
-        id: `mock-ex-${dateStr}-${Math.random()}`,
+        id: `mock-ex-${dateStr}`,
         name: template.name,
         duration: template.duration,
         caloriesBurned: template.caloriesBurned + Math.floor((Math.random() * 40) - 20),
@@ -80,34 +75,10 @@ function generateMockData() {
   }
 
   state.meals.push(
-    {
-      id: `today-meal-1`,
-      name: 'Avocado Toast & Poached Eggs',
-      category: 'breakfast',
-      calories: 420,
-      protein: 18,
-      carbs: 34,
-      fat: 20,
-      date: TODAY_STR
-    },
-    {
-      id: `today-meal-2`,
-      name: 'Teriyaki Chicken Bowls',
-      category: 'lunch',
-      calories: 580,
-      protein: 40,
-      carbs: 65,
-      fat: 12,
-      date: TODAY_STR
-    }
+    { id: 'today-meal-1', name: 'Avocado Toast & Poached Eggs', category: 'breakfast', calories: 420, protein: 18, carbs: 34, fat: 20, date: TODAY_STR },
+    { id: 'today-meal-2', name: 'Teriyaki Chicken Bowls', category: 'lunch', calories: 580, protein: 40, carbs: 65, fat: 12, date: TODAY_STR }
   );
-  state.exercises.push({
-    id: `today-ex-1`,
-    name: 'Power Walk',
-    duration: 25,
-    caloriesBurned: 150,
-    date: TODAY_STR
-  });
+  state.exercises.push({ id: 'today-ex-1', name: 'Power Walk', duration: 25, caloriesBurned: 150, date: TODAY_STR });
   state.waterIntakes[TODAY_STR] = 750;
 }
 
@@ -116,12 +87,12 @@ function loadState() {
   if (saved) {
     try {
       state = JSON.parse(saved);
-      if (!state.theme) state.theme = 'light';
       if (!state.waterIntakes) state.waterIntakes = {};
       if (!state.meals) state.meals = [];
       if (!state.exercises) state.exercises = [];
-    } catch (e) {
-      console.error("Failed to parse state, resetting", e);
+      if (!state.dailyNotes) state.dailyNotes = {};
+      if (!state.activityLevel) state.activityLevel = 1.375;
+    } catch (_) {
       initializeDefaultState();
     }
   } else {
@@ -130,13 +101,18 @@ function loadState() {
 }
 
 function initializeDefaultState() {
-  state.theme = 'light';
-  state.dailyCalorieTarget = 2000;
-  state.macroGoals = { protein: 150, carbs: 225, fat: 67 };
-  state.waterGoal = 2000;
-  state.waterIntakes = {};
-  state.meals = [];
-  state.exercises = [];
+  state = {
+    theme: 'light',
+    dailyCalorieTarget: 2000,
+    macroGoals: { protein: 150, carbs: 225, fat: 67 },
+    waterGoal: 2000,
+    activityLevel: 1.375,
+    bodyWeight: null,
+    waterIntakes: {},
+    meals: [],
+    exercises: [],
+    dailyNotes: {}
+  };
   generateMockData();
   saveState();
 }
@@ -147,35 +123,49 @@ function saveState() {
 
 function updateThemeUI() {
   document.documentElement.setAttribute('data-theme', state.theme);
-
   const isDark = state.theme === 'dark';
   const pairs = [
     { icon: '#theme-toggle-icon', light: '#icon-moon', dark: '#icon-sun' },
     { icon: '#sidebar-theme-icon', light: '#icon-moon', dark: '#icon-sun' },
     { icon: '#mobile-theme-icon', light: '#icon-moon', dark: '#icon-sun' }
   ];
-
   pairs.forEach(p => {
     const el = document.querySelector(p.icon);
     if (el) el.setAttribute('href', isDark ? p.dark : p.light);
   });
-
   const sidebarLabel = document.getElementById('sidebar-theme-label');
   if (sidebarLabel) sidebarLabel.textContent = isDark ? 'Light Mode' : 'Dark Mode';
 }
 
 function setGreeting() {
   const hour = new Date().getHours();
-  let greeting = 'Good evening';
-  if (hour < 12) greeting = 'Good morning';
-  else if (hour < 17) greeting = 'Good afternoon';
-
+  let greeting = 'Good evening', sub = 'Wind down and reflect on today';
+  if (hour < 12) { greeting = 'Good morning'; sub = 'Start your day strong'; }
+  else if (hour < 17) { greeting = 'Good afternoon'; sub = 'Keep the momentum going'; }
   const el = document.getElementById('greeting-text');
+  const subEl = document.getElementById('greeting-sub');
   if (el) el.textContent = greeting;
+  if (subEl) subEl.textContent = sub;
+}
+
+function calculateStreak() {
+  let streak = 0;
+  const today = new Date();
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(); d.setDate(today.getDate() - i);
+    const dateStr = getLocalDateString(d);
+    const hasMeals = state.meals.some(m => m.date === dateStr);
+    if (hasMeals) streak++;
+    else break;
+  }
+  return streak;
 }
 
 function renderApp() {
   updateThemeUI();
+
+  const streak = calculateStreak();
+  document.getElementById('streak-count').textContent = streak;
 
   const todaysMeals = state.meals.filter(m => m.date === TODAY_STR);
   const todaysExercises = state.exercises.filter(e => e.date === TODAY_STR);
@@ -200,8 +190,8 @@ function renderApp() {
   if (caloriesRemaining >= 0) {
     remainingDisplay.innerText = caloriesRemaining.toLocaleString();
     remainingLbl.innerText = 'kcal left';
-    remainingLbl.style.color = 'var(--text-secondary)';
-    remainingDisplay.style.color = 'var(--primary)';
+    remainingLbl.style.color = '';
+    remainingDisplay.style.color = '';
   } else {
     remainingDisplay.innerText = Math.abs(caloriesRemaining).toLocaleString();
     remainingLbl.innerText = 'kcal over';
@@ -211,11 +201,12 @@ function renderApp() {
 
   const circleFill = document.getElementById('calorie-progress-fill');
   const maxDash = 471;
-  const progressRatio = Math.min(totalCaloriesIn / (state.dailyCalorieTarget + totalCaloriesBurned), 1.5);
+  const totalAvailable = state.dailyCalorieTarget + totalCaloriesBurned;
+  const progressRatio = Math.min(totalCaloriesIn / (totalAvailable || 1), 1.5);
   const strokeOffset = Math.max(0, maxDash - (Math.min(progressRatio, 1) * maxDash));
   circleFill.style.strokeDashoffset = strokeOffset;
 
-  if (totalCaloriesIn > (state.dailyCalorieTarget + totalCaloriesBurned)) {
+  if (totalCaloriesIn > totalAvailable) {
     circleFill.classList.add('circle-fill-over');
   } else {
     circleFill.classList.remove('circle-fill-over');
@@ -232,21 +223,18 @@ function renderApp() {
   renderFoodDiary(todaysMeals);
   renderExercises(todaysExercises);
   renderWeeklyTrendsChart();
+  loadDailyNote();
 }
 
 function updateMacroProgressBar(id, current, goal) {
-  const textEl = document.getElementById(`macro-${id}-stats`);
-  const fillEl = document.getElementById(`macro-${id}-fill`);
-
-  textEl.innerText = `${Math.round(current)}g / ${goal}g`;
+  document.getElementById(`macro-${id}-stats`).innerText = `${Math.round(current)}g / ${goal}g`;
   const pct = Math.min((current / goal) * 100, 100);
-  fillEl.style.width = `${pct}%`;
+  document.getElementById(`macro-${id}-fill`).style.width = `${pct}%`;
 }
 
 function renderWaterCups(current, goal) {
   const grid = document.getElementById('water-cups-grid');
   grid.innerHTML = '';
-
   const increment = 250;
   const totalCups = Math.max(8, Math.ceil(goal / increment));
   const filledCups = Math.floor(current / increment);
@@ -254,21 +242,16 @@ function renderWaterCups(current, goal) {
   for (let i = 0; i < totalCups; i++) {
     const cup = document.createElement('button');
     cup.className = `water-cup ${i < filledCups ? 'filled' : ''}`;
-    cup.setAttribute('aria-label', `Water cup ${i+1}, ${i < filledCups ? 'Filled' : 'Empty'}`);
-    cup.innerHTML = `<svg><use href="#icon-droplet"></use></svg>`;
+    cup.setAttribute('aria-label', `Water cup ${i+1}`);
+    cup.innerHTML = '<svg><use href="#icon-droplet"></use></svg>';
 
     cup.addEventListener('click', () => {
-      let newAmount = 0;
+      let newAmount;
       if (i < filledCups) {
-        if (i === filledCups - 1) {
-          newAmount = i * increment;
-        } else {
-          newAmount = (i + 1) * increment;
-        }
+        newAmount = i === filledCups - 1 ? i * increment : (i + 1) * increment;
       } else {
         newAmount = (i + 1) * increment;
       }
-
       state.waterIntakes[TODAY_STR] = newAmount;
       saveState();
       renderApp();
@@ -290,39 +273,27 @@ function renderFoodDiary(todaysMeals) {
     container.innerHTML = `
       <div class="empty-state">
         <svg><use href="#icon-coffee"></use></svg>
-        <p>No food logged ${activeCategoryFilter === 'all' ? 'for today' : `in ${activeCategoryFilter}`}.</p>
-        <p style="font-size: 0.8rem;">Tap 'Log Food' to begin tracking.</p>
-      </div>
-    `;
+        <p>No meals logged yet.</p>
+        <p style="font-size:0.78rem;">Use the quick-add buttons or tap 'Log Food' above.</p>
+      </div>`;
     return;
   }
 
   const categories = ['breakfast', 'lunch', 'dinner', 'snack'];
-
   categories.forEach(cat => {
     if (activeCategoryFilter !== 'all' && activeCategoryFilter !== cat) return;
-
     const mealsInCat = filteredMeals.filter(m => m.category === cat);
-    if (mealsInCat.length === 0) return;
+    if (!mealsInCat.length) return;
 
     const catCalories = mealsInCat.reduce((sum, m) => sum + m.calories, 0);
-
     const group = document.createElement('div');
     group.className = 'meal-group';
 
     const header = document.createElement('div');
     header.className = 'meal-group-header';
-
-    let iconName = 'icon-coffee';
-    if (cat === 'lunch' || cat === 'dinner') iconName = 'icon-utensils';
-
     header.innerHTML = `
-      <span class="meal-group-title">
-        <svg><use href="#${iconName}"></use></svg>
-        ${cat}
-      </span>
-      <span class="meal-group-calories">${catCalories} kcal</span>
-    `;
+      <span class="meal-group-title"><svg><use href="#${cat === 'breakfast' || cat === 'snack' ? 'icon-coffee' : 'icon-utensils'}"></use></svg> ${cat}</span>
+      <span class="meal-group-calories">${catCalories} kcal</span>`;
     group.appendChild(header);
 
     const itemsList = document.createElement('div');
@@ -331,36 +302,21 @@ function renderFoodDiary(todaysMeals) {
     mealsInCat.forEach(meal => {
       const item = document.createElement('div');
       item.className = 'meal-item';
-      item.id = `meal-${meal.id}`;
-
-      let macrosText = '';
-      if (meal.protein || meal.carbs || meal.fat) {
-        macrosText = `
-          <span class="meal-item-macros">
-            ${meal.protein ? `P: ${meal.protein}g` : ''}
-            ${meal.carbs ? `C: ${meal.carbs}g` : ''}
-            ${meal.fat ? `F: ${meal.fat}g` : ''}
-          </span>
-        `;
-      }
-
+      const macros = (meal.protein || meal.carbs || meal.fat)
+        ? `<span class="meal-item-macros">${meal.protein ? `P:${meal.protein}g ` : ''}${meal.carbs ? `C:${meal.carbs}g ` : ''}${meal.fat ? `F:${meal.fat}g` : ''}</span>`
+        : '';
       item.innerHTML = `
         <div class="meal-item-info">
           <span class="meal-item-name">${meal.name}</span>
-          ${macrosText}
+          ${macros}
         </div>
         <div class="meal-item-cal-delete">
           <span class="meal-item-calories">${meal.calories} kcal</span>
-          <button class="btn btn-secondary btn-danger-light btn-delete-meal" data-id="${meal.id}" aria-label="Delete ${meal.name}">
-            <svg style="width:16px; height:16px;"><use href="#icon-trash"></use></svg>
+          <button class="btn btn-icon" style="width:32px;height:32px;border:none;background:transparent;color:var(--text-muted)" data-id="${meal.id}" aria-label="Delete">
+            <svg style="width:14px;height:14px;"><use href="#icon-trash"></use></svg>
           </button>
-        </div>
-      `;
-
-      item.querySelector('.btn-delete-meal').addEventListener('click', () => {
-        deleteMealItem(meal.id, item);
-      });
-
+        </div>`;
+      item.querySelector('button').addEventListener('click', () => deleteMealItem(meal.id, item));
       itemsList.appendChild(item);
     });
 
@@ -375,28 +331,21 @@ function deleteMealItem(id, element) {
     state.meals = state.meals.filter(m => m.id !== id);
     saveState();
     renderApp();
-  }, 250);
+  }, 200);
 }
 
 function renderExercises(todaysExercises) {
   const container = document.getElementById('exercise-log-list');
   container.innerHTML = '';
 
-  if (todaysExercises.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state" style="padding: 1.25rem;">
-        <svg><use href="#icon-activity"></use></svg>
-        <p>No workouts logged today.</p>
-      </div>
-    `;
+  if (!todaysExercises.length) {
+    container.innerHTML = `<div class="empty-state"><svg><use href="#icon-activity"></use></svg><p>No workouts logged today.</p></div>`;
     return;
   }
 
   todaysExercises.forEach(ex => {
     const card = document.createElement('div');
     card.className = 'exercise-item';
-    card.id = `ex-${ex.id}`;
-
     card.innerHTML = `
       <div class="exercise-details">
         <span class="exercise-name">${ex.name}</span>
@@ -404,16 +353,11 @@ function renderExercises(todaysExercises) {
       </div>
       <div class="exercise-right">
         <span class="exercise-burn">-${ex.caloriesBurned} kcal</span>
-        <button class="btn btn-secondary btn-danger-light btn-delete-ex" data-id="${ex.id}" aria-label="Delete ${ex.name}">
-          <svg style="width:16px; height:16px;"><use href="#icon-trash"></use></svg>
+        <button class="btn btn-icon" style="width:32px;height:32px;border:none;background:transparent;color:var(--text-muted)" data-id="${ex.id}" aria-label="Delete">
+          <svg style="width:14px;height:14px;"><use href="#icon-trash"></use></svg>
         </button>
-      </div>
-    `;
-
-    card.querySelector('.btn-delete-ex').addEventListener('click', () => {
-      deleteExerciseItem(ex.id, card);
-    });
-
+      </div>`;
+    card.querySelector('button').addEventListener('click', () => deleteExerciseItem(ex.id, card));
     container.appendChild(card);
   });
 }
@@ -424,20 +368,18 @@ function deleteExerciseItem(id, element) {
     state.exercises = state.exercises.filter(e => e.id !== id);
     saveState();
     renderApp();
-  }, 250);
+  }, 200);
 }
 
 function renderWeeklyTrendsChart() {
   const chart = document.getElementById('weekly-trends-bar-chart');
   chart.innerHTML = '';
-
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const today = new Date();
 
   const last7Days = [];
   for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(today.getDate() - i);
+    const d = new Date(); d.setDate(today.getDate() - i);
     last7Days.push({
       dateStr: getLocalDateString(d),
       dayLabel: daysOfWeek[d.getDay()],
@@ -446,60 +388,65 @@ function renderWeeklyTrendsChart() {
   }
 
   const dailyBalances = last7Days.map(day => {
-    const dayMeals = state.meals.filter(m => m.date === day.dateStr);
-    const dayExercises = state.exercises.filter(e => e.date === day.dateStr);
-
-    const calIn = dayMeals.reduce((sum, m) => sum + m.calories, 0);
-    const calOut = dayExercises.reduce((sum, e) => sum + e.caloriesBurned, 0);
-    const net = calIn - calOut;
-
-    return {
-      ...day,
-      netCalories: Math.max(0, net)
-    };
+    const calIn = state.meals.filter(m => m.date === day.dateStr).reduce((s, m) => s + m.calories, 0);
+    const calOut = state.exercises.filter(e => e.date === day.dateStr).reduce((s, e) => s + e.caloriesBurned, 0);
+    return { ...day, netCalories: Math.max(0, calIn - calOut) };
   });
 
-  const maxNet = Math.max(
-    state.dailyCalorieTarget,
-    ...dailyBalances.map(d => d.netCalories),
-    1
-  );
+  const maxNet = Math.max(state.dailyCalorieTarget, ...dailyBalances.map(d => d.netCalories), 1);
 
   dailyBalances.forEach(day => {
     const column = document.createElement('div');
     column.className = 'chart-column';
-
-    const barHeightPercent = (day.netCalories / maxNet) * 100;
-    const isExceeded = day.netCalories > state.dailyCalorieTarget;
-
+    const pct = (day.netCalories / maxNet) * 100;
+    const exceeded = day.netCalories > state.dailyCalorieTarget;
     column.innerHTML = `
       <div class="chart-bar-wrapper">
         <div class="chart-bar-tooltip">${day.netCalories} kcal</div>
-        <div class="chart-bar ${isExceeded ? 'limit-exceeded' : ''}" style="height: ${Math.max(5, barHeightPercent)}%"></div>
+        <div class="chart-bar ${exceeded ? 'limit-exceeded' : ''}" style="height: ${Math.max(3, pct)}%"></div>
       </div>
-      <span class="chart-label">${day.dayLabel}<br><span style="font-size:0.65rem; opacity:0.6;">${day.dateLabel}</span></span>
-    `;
-
+      <span class="chart-label">${day.dayLabel}<br><span style="font-size:0.6rem;opacity:0.6">${day.dateLabel}</span></span>`;
     chart.appendChild(column);
   });
 }
 
-// ==========================================
-// SIDEBAR NAVIGATION
-// ==========================================
+function loadDailyNote() {
+  const textarea = document.getElementById('daily-notes');
+  const count = document.getElementById('notes-count');
+  if (state.dailyNotes[TODAY_STR]) textarea.value = state.dailyNotes[TODAY_STR];
+  else textarea.value = '';
+  count.textContent = `${textarea.value.length} / 500`;
+}
 
+// BMI
+function calculateBMI(height, weight) {
+  if (!height || !weight || height <= 0 || weight <= 0) return null;
+  const h = height / 100;
+  return weight / (h * h);
+}
+
+function getBMICategory(bmi) {
+  if (bmi < 18.5) return 'Underweight';
+  if (bmi < 25) return 'Normal weight';
+  if (bmi < 30) return 'Overweight';
+  return 'Obese';
+}
+
+// TDEE estimate (Mifflin-St Jeor, assuming male for simplicity, or could use avg)
+function estimateTDEE(weight, activity) {
+  if (!weight || weight <= 0) return null;
+  const bmr = 10 * weight + 625; // rough average of male/female
+  return Math.round(bmr * activity);
+}
+
+// NAVIGATION
 let activeSection = 'dashboard';
 
 function scrollToSection(sectionId) {
   const card = document.querySelector(`[data-section="${sectionId}"]`);
   if (!card) return;
-
-  const headerOffset = 100;
-  const elementPosition = card.getBoundingClientRect().top;
-  const offsetPosition = elementPosition + window.scrollY - headerOffset;
-
-  window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
-
+  const offset = card.getBoundingClientRect().top + window.scrollY - 90;
+  window.scrollTo({ top: offset, behavior: 'smooth' });
   setActiveNav(sectionId);
 }
 
@@ -520,78 +467,47 @@ function setupScrollSpy() {
       }
     });
   }, { rootMargin: '-80px 0px -60% 0px' });
-
   sections.forEach(s => observer.observe(s));
 }
 
-// ==========================================
-// MODAL CONTROLLERS
-// ==========================================
-
+// MODALS
 const modals = {
   food: document.getElementById('modal-add-food'),
   exercise: document.getElementById('modal-add-exercise'),
   targets: document.getElementById('modal-edit-targets')
 };
 
-function openModal(modalEl) {
-  modalEl.classList.add('active');
-}
+function openModal(modalEl) { modalEl.classList.add('active'); }
+function closeModal(modalEl) { modalEl.classList.remove('active'); }
 
-function closeModal(modalEl) {
-  modalEl.classList.remove('active');
-}
-
-// ==========================================
-// SETUP EVENTS
-// ==========================================
-
+// EVENTS
 function setupEvents() {
-  // Theme Toggle (header)
-  document.getElementById('theme-toggle').addEventListener('click', () => {
+  // Theme toggles
+  document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+  document.getElementById('mobile-theme-btn').addEventListener('click', toggleTheme);
+  document.getElementById('nav-theme-toggle').addEventListener('click', (e) => { e.preventDefault(); toggleTheme(); });
+
+  function toggleTheme() {
     state.theme = state.theme === 'light' ? 'dark' : 'light';
     saveState();
     renderApp();
-  });
+  }
 
-  // Theme Toggle (mobile)
-  document.getElementById('mobile-theme-btn').addEventListener('click', () => {
-    state.theme = state.theme === 'light' ? 'dark' : 'light';
-    saveState();
-    renderApp();
-  });
-
-  // Theme Toggle (sidebar)
-  document.getElementById('nav-theme-toggle').addEventListener('click', (e) => {
-    e.preventDefault();
-    state.theme = state.theme === 'light' ? 'dark' : 'light';
-    saveState();
-    renderApp();
-  });
-
-  // Sidebar Navigation
+  // Sidebar nav
   document.querySelectorAll('.nav-item[data-section]').forEach(item => {
     item.addEventListener('click', (e) => {
       e.preventDefault();
-      const section = item.dataset.section;
-      scrollToSection(section);
-
-      // Close sidebar on mobile
+      scrollToSection(item.dataset.section);
       document.getElementById('sidebar').classList.remove('open');
       document.getElementById('sidebar-overlay').classList.remove('active');
     });
   });
 
-  // Settings nav item
+  // Settings nav
   document.getElementById('nav-settings').addEventListener('click', (e) => {
     e.preventDefault();
-    document.getElementById('target-calories').value = state.dailyCalorieTarget;
-    document.getElementById('target-protein').value = state.macroGoals.protein;
-    document.getElementById('target-carbs').value = state.macroGoals.carbs;
-    document.getElementById('target-fat').value = state.macroGoals.fat;
-    document.getElementById('target-water').value = state.waterGoal;
+    populateTargetsForm();
     openModal(modals.targets);
-
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('sidebar-overlay').classList.remove('active');
   });
@@ -601,147 +517,181 @@ function setupEvents() {
     document.getElementById('sidebar').classList.add('open');
     document.getElementById('sidebar-overlay').classList.add('active');
   });
-
-  document.getElementById('sidebar-close-btn').addEventListener('click', () => {
+  document.getElementById('sidebar-close-btn').addEventListener('click', closeSidebar);
+  document.getElementById('sidebar-overlay').addEventListener('click', closeSidebar);
+  function closeSidebar() {
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('sidebar-overlay').classList.remove('active');
-  });
+  }
 
-  document.getElementById('sidebar-overlay').addEventListener('click', () => {
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('sidebar-overlay').classList.remove('active');
-  });
-
-  // Open Modals
+  // Open modals
   document.getElementById('log-meal-header-btn').addEventListener('click', () => {
-    const categorySelector = document.getElementById('food-category');
-    if (activeCategoryFilter !== 'all') {
-      categorySelector.value = activeCategoryFilter;
-    }
+    if (activeCategoryFilter !== 'all') document.getElementById('food-category').value = activeCategoryFilter;
     document.getElementById('form-add-food').reset();
     openModal(modals.food);
   });
-
   document.getElementById('mobile-floating-action-btn').addEventListener('click', () => {
     document.getElementById('form-add-food').reset();
     openModal(modals.food);
   });
-
   document.getElementById('btn-log-exercise').addEventListener('click', () => {
     document.getElementById('form-add-exercise').reset();
     openModal(modals.exercise);
   });
-
   document.getElementById('edit-targets-btn').addEventListener('click', () => {
+    populateTargetsForm();
+    openModal(modals.targets);
+  });
+
+  function populateTargetsForm() {
     document.getElementById('target-calories').value = state.dailyCalorieTarget;
     document.getElementById('target-protein').value = state.macroGoals.protein;
     document.getElementById('target-carbs').value = state.macroGoals.carbs;
     document.getElementById('target-fat').value = state.macroGoals.fat;
     document.getElementById('target-water').value = state.waterGoal;
-    openModal(modals.targets);
-  });
+    document.getElementById('target-activity').value = state.activityLevel;
+    document.getElementById('target-bodyweight').value = state.bodyWeight || '';
+  }
 
-  // Close Modals
-  const closeBorders = [
+  // Close modals
+  const closePairs = [
     { btn: 'btn-close-food-modal', cancel: 'btn-cancel-food-modal', modal: modals.food },
     { btn: 'btn-close-exercise-modal', cancel: 'btn-cancel-exercise-modal', modal: modals.exercise },
     { btn: 'btn-close-targets-modal', cancel: 'btn-cancel-targets-modal', modal: modals.targets }
   ];
-
-  closeBorders.forEach(c => {
+  closePairs.forEach(c => {
     document.getElementById(c.btn).addEventListener('click', () => closeModal(c.modal));
     document.getElementById(c.cancel).addEventListener('click', () => closeModal(c.modal));
-    c.modal.addEventListener('click', (e) => {
-      if (e.target === c.modal) closeModal(c.modal);
-    });
+    c.modal.addEventListener('click', (e) => { if (e.target === c.modal) closeModal(c.modal); });
   });
 
-  // Segmented Control
+  // Segmented control
   document.getElementById('diary-category-filter').addEventListener('click', (e) => {
     const btn = e.target.closest('.segment-btn');
     if (!btn) return;
-
     document.querySelectorAll('#diary-category-filter .segment-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-
     activeCategoryFilter = btn.dataset.filter;
-    const todaysMeals = state.meals.filter(m => m.date === TODAY_STR);
-    renderFoodDiary(todaysMeals);
+    renderFoodDiary(state.meals.filter(m => m.date === TODAY_STR));
   });
 
-  // Water Controls
+  // Quick-add presets
+  document.querySelectorAll('.preset-btn[data-preset]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const data = JSON.parse(btn.dataset.preset);
+      const meal = {
+        id: `meal-${Date.now()}-${Math.random()}`,
+        name: data.name,
+        category: data.category,
+        calories: data.calories,
+        protein: data.protein,
+        carbs: data.carbs,
+        fat: data.fat,
+        date: TODAY_STR
+      };
+      state.meals.push(meal);
+      saveState();
+      renderApp();
+    });
+  });
+
+  document.getElementById('preset-more').addEventListener('click', () => {
+    document.getElementById('form-add-food').reset();
+    openModal(modals.food);
+  });
+
+  // Water controls
   document.getElementById('btn-water-add-250').addEventListener('click', () => {
-    const current = state.waterIntakes[TODAY_STR] || 0;
-    state.waterIntakes[TODAY_STR] = current + 250;
+    state.waterIntakes[TODAY_STR] = (state.waterIntakes[TODAY_STR] || 0) + 250;
     saveState();
     renderApp();
   });
-
   document.getElementById('btn-water-reset').addEventListener('click', () => {
     state.waterIntakes[TODAY_STR] = 0;
     saveState();
     renderApp();
   });
 
-  // Food Form
+  // Daily notes
+  document.getElementById('daily-notes').addEventListener('input', (e) => {
+    const val = e.target.value;
+    if (val.length > 500) { e.target.value = val.slice(0, 500); }
+    state.dailyNotes[TODAY_STR] = e.target.value;
+    document.getElementById('notes-count').textContent = `${e.target.value.length} / 500`;
+    saveState();
+  });
+
+  // BMI calculator
+  document.getElementById('btn-calc-bmi').addEventListener('click', () => {
+    const height = parseFloat(document.getElementById('bmi-height').value);
+    const weight = parseFloat(document.getElementById('bmi-weight').value);
+    const bmi = calculateBMI(height, weight);
+    if (bmi === null) {
+      document.getElementById('bmi-value').textContent = '--';
+      document.getElementById('bmi-category').textContent = 'Enter valid height & weight';
+      return;
+    }
+    document.getElementById('bmi-value').textContent = bmi.toFixed(1);
+    document.getElementById('bmi-category').textContent = getBMICategory(bmi);
+  });
+
+  // Auto-calc BMI on enter
+  document.getElementById('bmi-height').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('btn-calc-bmi').click(); });
+  document.getElementById('bmi-weight').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('btn-calc-bmi').click(); });
+
+  // Food form
   document.getElementById('form-add-food').addEventListener('submit', (e) => {
     e.preventDefault();
-
-    const category = document.getElementById('food-category').value;
-    const name = document.getElementById('food-name').value.trim();
-    const calories = parseInt(document.getElementById('food-calories').value);
-    const protein = parseInt(document.getElementById('food-protein').value) || 0;
-    const carbs = parseInt(document.getElementById('food-carbs').value) || 0;
-    const fat = parseInt(document.getElementById('food-fat').value) || 0;
-
-    const newMeal = {
+    const meal = {
       id: `meal-${Date.now()}`,
-      name,
-      category,
-      calories,
-      protein,
-      carbs,
-      fat,
+      name: document.getElementById('food-name').value.trim(),
+      category: document.getElementById('food-category').value,
+      calories: parseInt(document.getElementById('food-calories').value),
+      protein: parseInt(document.getElementById('food-protein').value) || 0,
+      carbs: parseInt(document.getElementById('food-carbs').value) || 0,
+      fat: parseInt(document.getElementById('food-fat').value) || 0,
       date: TODAY_STR
     };
-
-    state.meals.push(newMeal);
+    state.meals.push(meal);
     saveState();
     closeModal(modals.food);
     renderApp();
   });
 
-  // Exercise Form
+  // Exercise form
   document.getElementById('form-add-exercise').addEventListener('submit', (e) => {
     e.preventDefault();
-
-    const name = document.getElementById('exercise-name').value.trim();
-    const duration = parseInt(document.getElementById('exercise-duration').value);
-    const caloriesBurned = parseInt(document.getElementById('exercise-calories').value);
-
-    const newExercise = {
+    const ex = {
       id: `ex-${Date.now()}`,
-      name,
-      duration,
-      caloriesBurned,
+      name: document.getElementById('exercise-name').value.trim(),
+      duration: parseInt(document.getElementById('exercise-duration').value),
+      caloriesBurned: parseInt(document.getElementById('exercise-calories').value),
       date: TODAY_STR
     };
-
-    state.exercises.push(newExercise);
+    state.exercises.push(ex);
     saveState();
     closeModal(modals.exercise);
     renderApp();
   });
 
-  // Targets Form
+  // Targets form
   document.getElementById('form-edit-targets').addEventListener('submit', (e) => {
     e.preventDefault();
-
     state.dailyCalorieTarget = parseInt(document.getElementById('target-calories').value);
     state.macroGoals.protein = parseInt(document.getElementById('target-protein').value);
     state.macroGoals.carbs = parseInt(document.getElementById('target-carbs').value);
     state.macroGoals.fat = parseInt(document.getElementById('target-fat').value);
     state.waterGoal = parseInt(document.getElementById('target-water').value);
+    state.activityLevel = parseFloat(document.getElementById('target-activity').value);
+    state.bodyWeight = parseFloat(document.getElementById('target-bodyweight').value) || null;
+
+    // TDEE suggestion
+    const tdee = estimateTDEE(state.bodyWeight, state.activityLevel);
+    if (tdee && state.bodyWeight) {
+      if (confirm(`Based on your weight and activity level, your estimated TDEE is ${tdee} kcal/day.\n\nWould you like to set this as your calorie target?`)) {
+        state.dailyCalorieTarget = tdee;
+      }
+    }
 
     saveState();
     closeModal(modals.targets);
@@ -749,10 +699,7 @@ function setupEvents() {
   });
 }
 
-// ==========================================
-// APP INIT
-// ==========================================
-
+// INIT
 document.addEventListener('DOMContentLoaded', () => {
   loadState();
   setGreeting();
